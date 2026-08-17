@@ -10,11 +10,11 @@ const t: PetProps['t'] = (key) => zh[key as PetKey]
 afterEach(cleanup)
 
 describe('Pet', () => {
-  it('renders the Ellen image and dismisses to the restore pill via the close control', () => {
+  it('renders the sprite and dismisses to the restore pill via the close control', () => {
     const view = render(<Pet t={t} />)
-    expect(view.container.querySelector('img')?.getAttribute('src')).toBe('/ailian.png')
+    expect(view.container.querySelector('[class*="sprite"]')).not.toBeNull()
     fireEvent.click(view.getByRole('button', { name: zh['pet.close'] }))
-    expect(view.container.querySelector('img')).toBeNull()
+    expect(view.container.querySelector('[class*="sprite"]')).toBeNull()
     expect(view.getByRole('button', { name: zh['pet.restore'] })).toBeTruthy()
   })
 
@@ -22,7 +22,15 @@ describe('Pet', () => {
     const view = render(<Pet t={t} />)
     fireEvent.click(view.getByRole('button', { name: zh['pet.close'] }))
     fireEvent.click(view.getByRole('button', { name: zh['pet.restore'] }))
-    expect(view.container.querySelector('img')).not.toBeNull()
+    expect(view.container.querySelector('[class*="sprite"]')).not.toBeNull()
     expect(view.queryByRole('button', { name: zh['pet.close'] })).toBeTruthy()
+  })
+
+  it('pokes on a direct click: happy action and a quote bubble', () => {
+    const view = render(<Pet t={t} />)
+    const pet = view.container.querySelector('[data-action]')!
+    fireEvent.click(pet)
+    expect(pet.getAttribute('data-action')).toBe('happy')
+    expect(view.container.querySelector('[class*="bubble"]')).not.toBeNull()
   })
 })

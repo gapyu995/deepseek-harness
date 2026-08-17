@@ -54,19 +54,6 @@ describe('ic_ds_ icon set', () => {
   })
 })
 
-describe('SharkMascot', () => {
-  it('renders the shark in currentColor with the Ellen-red accent token', () => {
-    const { container } = render(<primitives.SharkMascot />)
-    const svg = container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('72')
-    expect(Number(svg.getAttribute('height'))).toBeCloseTo(43.2, 1)
-    expect(svg.getAttribute('viewBox')).toBe('0 0 80 48')
-    expect(container.querySelectorAll('path').length).toBeGreaterThanOrEqual(4)
-    expect(container.innerHTML).toContain('currentColor')
-    expect(container.innerHTML).toContain('--dsw-alias-state-business-primary')
-  })
-})
-
 describe('FishLogo', () => {
   it('renders the fish path in currentColor at the native ratio', () => {
     const { container } = render(<primitives.FishLogo />)

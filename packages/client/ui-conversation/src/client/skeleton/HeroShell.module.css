@@ -23,19 +23,6 @@
   overflow: visible;
 }
 
-/* Shark mascot floats above the headline as the theme's character accent. */
-.mascotRow {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 4px;
-}
-
-/* Body ink follows the headline so the mascot adapts to either palette; the
-   red/ice accents ride the mascot's own token fills. */
-.mascot {
-  color: var(--dsw-alias-label-primary);
-}
-
 /* figma 34:10411: fish + title, gap 10, centered; 26/32 wt500. The preview
    badge is a product addition outside that source: a mono superscript pill
    riding the title's top-right. */

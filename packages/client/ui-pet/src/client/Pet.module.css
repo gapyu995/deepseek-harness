@@ -1,9 +1,9 @@
 /* Desktop pet floating over the app. The shell.overlay layer is
    click-through and re-enables pointer events on its direct children, so the
-   pet root is interactive; the image itself stays inert (pointer-events:
-   none) so a drag gesture always lands on the root and never starts an image
-   drag or a selection. Position rides component-local left/top state; no
-   store, no persistence. */
+   pet root is interactive; the sprite itself stays inert (pointer-events:
+   none) so a drag gesture always lands on the root and never starts a
+   selection. Position rides component-local left/top state; the animation is
+   a JS-driven frame index stepped over one sprite sheet. */
 
 .pet {
   position: absolute;
@@ -18,21 +18,16 @@
   cursor: grabbing;
 }
 
-.img {
-  display: block;
-  width: 140px;
-  height: auto;
+/* One frame of the sprite sheet (8×4 grid of square frames), revealed by
+   background-position. Width/height and background-size/position ride inline
+   styles: the sheet is always scaled to one fixed 2:1 box, so a wide frame
+   spans two columns without distorting the sheet. */
+.sprite {
+  background-image: url('/Sprite.png');
+  background-repeat: no-repeat;
   pointer-events: none;
   user-select: none;
-  -webkit-user-drag: none;
-  transform-origin: 50% 100%;
-  animation: pet-bob 3.2s var(--ds-ease-in-out) infinite;
-}
-
-/* Pause the idle bob while the pointer moves it, so the mark does not fight
-   the drag delta. */
-.pet[data-dragging] .img {
-  animation: none;
+  -webkit-user-select: none;
 }
 
 .close {
@@ -77,18 +72,63 @@
   cursor: pointer;
 }
 
-@keyframes pet-bob {
-  0%, 100% {
-    transform: translateY(0) rotate(-2deg);
+/* Speech bubble with a random line, above the pet. Click-through so it never
+   blocks a drag gesture that starts over it. */
+.bubble {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: var(--dsw-shadow-lv2);
+  animation: bubble-in 0.18s var(--ds-ease-in-out);
+}
+
+/* Exit phase runs the fade-out before the bubble unmounts. */
+.bubble[data-closing] {
+  animation: bubble-out 0.15s var(--ds-ease-in-out) forwards;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--dsw-alias-button-elevated-fill);
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
   }
 
-  50% {
-    transform: translateY(-5px) rotate(2deg);
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .img {
-    animation: none;
+@keyframes bubble-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, -4px);
   }
 }

@@ -23,7 +23,7 @@
    styles: the sheet is always scaled to one fixed 2:1 box, so a wide frame
    spans two columns without distorting the sheet. */
 .sprite {
-  background-image: url('/Sprite.png');
+  /* background-image rides inline styles so the accent picks the sheet. */
   background-repeat: no-repeat;
   pointer-events: none;
   user-select: none;

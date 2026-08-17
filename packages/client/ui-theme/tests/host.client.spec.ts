@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { SettingsProvider, settingsNamespace, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import {
-  DEFAULT_PREFERENCE, THEME_SETTINGS_NAMESPACE, apply,
+  DEFAULT_ACCENT, DEFAULT_PREFERENCE, THEME_SETTINGS_NAMESPACE, apply,
 } from '@deepseek-ai/dsh-client-ui-theme'
 
 class MemorySettings extends SettingsProvider {
@@ -21,9 +21,9 @@ describe('ui-theme host', () => {
     const fiber = ctx.plugin({ apply })
     await fiber.await()
     const ns = settingsNamespace(THEME_SETTINGS_NAMESPACE)
-    expect(ctx.settings.get(ns)).toEqual({ preference: DEFAULT_PREFERENCE })
+    expect(ctx.settings.get(ns)).toEqual({ preference: DEFAULT_PREFERENCE, accent: DEFAULT_ACCENT })
     await ctx.settings.update(ns, { preference: 'dark' })
-    expect(ctx.settings.get(ns)).toEqual({ preference: 'dark' })
+    expect(ctx.settings.get(ns)).toEqual({ preference: 'dark', accent: DEFAULT_ACCENT })
     await expect(ctx.settings.update(ns, { preference: 'sepia' })).rejects.toThrow()
     await fiber.dispose()
     expect(ctx.settings.describe().map(row => row.ns)).not.toContain(ns)

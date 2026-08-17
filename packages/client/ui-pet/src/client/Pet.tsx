@@ -1,7 +1,8 @@
 /**
  * Desktop pet: a draggable Ellen mascot floating over the app through the
  * `shell.overlay` seat. The character is a frame animation over one sprite
- * sheet (`/Sprite.png`), and every behavior — position, drag gesture,
+ * sheet — the Ellen or DeepSeek sheet, picked by the theme accent — and every
+ * behavior — position, drag gesture,
  * hide/show, action, frame, and the quote bubble — lives in component-local
  * state (no store, no session read). Actions: idle (row 0), walk while
  * dragged (row 1), a one-shot happy bounce on click (row 2), and sleep after
@@ -11,11 +12,12 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { createPetStore } from './settings-store.ts'
 import css from './Pet.module.css'
 
-/** Composed props: the standard locale seat only (the pet reads nothing else). */
-export type PetProps = PropsLocale<'pet'>
+/** Composed props: the locale seat plus the accent store (to pick the sprite sheet). */
+export type PetProps = PropsLocale<'pet'> & PropsStore<ReturnType<typeof createPetStore>>
 
 /** Sprite sheet geometry: a uniform 8×4 grid of square frames (1774×887). */
 const COLS = 8
@@ -77,7 +79,8 @@ function clamp(value: number, max: number): number {
  * @param props - locale seat for the control copy.
  * @returns the floating mascot element.
  */
-export function Pet({ t }: PetProps) {
+export function Pet({ t, useStore }: PetProps) {
+  const accent = useStore(s => s.accent)
   const [pos, setPos] = useState(() => ({
     x: Math.max(INSET, window.innerWidth - PET_WIDTH - INSET),
     y: Math.max(INSET, window.innerHeight - Math.round(PET_WIDTH / FRAME_RATIO) - INSET),
@@ -210,6 +213,7 @@ export function Pet({ t }: PetProps) {
   const backgroundPosition = `${-frameSpec.col * PET_WIDTH}px ${-spec.row * PET_WIDTH}px`
   const width = PET_WIDTH * frameSpec.span
   const height = PET_WIDTH
+  const spriteUrl = accent === 'ellen' ? '/Sprite_ailian.png' : '/Sprite_deepseek.png'
 
   return (
     <div
@@ -232,7 +236,7 @@ export function Pet({ t }: PetProps) {
           {bubble.text}
         </div>
       )}
-      <div className={css.sprite} style={{ width, height, backgroundSize, backgroundPosition }} />
+      <div className={css.sprite} style={{ width, height, backgroundSize, backgroundPosition, backgroundImage: `url(${spriteUrl})` }} />
       <button type="button" className={css.close} onClick={() => { setHidden(true) }} aria-label={t('pet.close')}>
         ×
       </button>

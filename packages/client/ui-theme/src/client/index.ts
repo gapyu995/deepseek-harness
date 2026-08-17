@@ -20,14 +20,15 @@ import { AppearanceRow } from './AppearanceRow.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import {
-  DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
-  type ThemePreference, type ThemeSettings,
+  DEFAULT_ACCENT, DEFAULT_PREFERENCE, isThemePreference, THEME_ACCENT_FIELD,
+  THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+  type ThemeAccent, type ThemePreference, type ThemeSettings,
 } from '../theme-settings.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
 export type { AppearanceRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
-export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
+export type { ThemeAccent, ThemePreference, ThemeSettings } from '../theme-settings.ts'
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
@@ -390,17 +391,34 @@ export function apply(ctx: ClientContext): void {
 
   const store = createAppearanceRowStore()
   let bound: BoundActions<typeof store> | undefined
+
+  // Accent: mirror the scope into the store and the body attribute the Ellen
+  // stylesheet selects on. The boot script sets the same attribute pre-plugin.
+  const adoptAccent = (accent: ThemeAccent): void => {
+    if (typeof document !== 'undefined') {
+      document.body.toggleAttribute('data-ds-ellen-theme', accent === 'ellen')
+    }
+    bound?.syncAccent(accent)
+  }
+  const syncAccent = (): void => {
+    adoptAccent(host.getSnapshot().value?.accent ?? DEFAULT_ACCENT)
+  }
+  ctx.effect(() => host.subscribe(() => { syncAccent() }), 'ui-theme: accent scope adoption')
+  syncAccent()
+
   const sync = (snapshot: ThemeSnapshot): void => {
     bound?.sync(snapshot.preference, snapshot.revision)
   }
   ctx.on('theme/change', sync)
   const injected = (actions: BoundActions<typeof store>): AppearanceRowInjected => {
     bound = actions
-    // Re-sync from the getter so no event is lost between registration and
+    // Re-sync from the getters so no event is lost between registration and
     // first render (the store's revision guard drops stale duplicates).
     sync(theme.getTheme())
+    syncAccent()
     return {
       setTheme: (id) => { theme.setTheme(id) },
+      setAccent: (accent) => { void host.set(THEME_ACCENT_FIELD, accent) },
     }
   }
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({

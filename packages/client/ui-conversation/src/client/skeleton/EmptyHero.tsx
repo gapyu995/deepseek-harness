@@ -65,7 +65,8 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 }
 
 /**
- * The Ellen red-and-ice backdrop ellipses (figma 313:14109, recolored).
+ * The soft backdrop ellipses (figma 313:14109): one blue ellipse for the
+ * native accent, recolored to a red + ice pair by the Ellen accent tokens.
  * Rendered by the hero owner (ConversationRoot), not HeroShell, so it can
  * center on the input card; the owner's className supplies all positioning.
  * @param props.className - positioning class from the owner.
@@ -92,8 +93,8 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
         </filter>
       </defs>
       <g filter={`url(#${glowFilterId})`}>
-        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" fill="#E14B5C" fillOpacity="0.10" />
-        <ellipse cx="525.5" cy="234" rx="260" ry="88" fill="#6EC6E8" fillOpacity="0.10" />
+        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" style={{ fill: 'var(--dsw-hero-glow)' }} fillOpacity="0.10" />
+        <ellipse cx="525.5" cy="234" rx="260" ry="88" style={{ fill: 'var(--dsw-hero-glow-ice)' }} fillOpacity="0.10" />
       </g>
     </svg>
   )

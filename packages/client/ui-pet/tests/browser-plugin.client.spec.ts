@@ -45,7 +45,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 
 describe('ui-pet browser half', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['slots', 'locale'])
+    expect(inject).toEqual(['slots', 'locale', 'settingsScope'])
   })
 
   it('registers the pet overlay entry, and fiber teardown removes it (HMR safety)', async () => {

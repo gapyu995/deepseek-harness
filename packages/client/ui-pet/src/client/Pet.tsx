@@ -59,6 +59,14 @@ const ACTIONS: Record<ActionName, { row: number; frames: readonly FrameSpec[]; f
   sleep: { row: 3, frames: strip(8), fps: 1 },
 }
 
+/** Sleep-row horizontal display offsets (px), keyed by accent then frame index.
+ * Only the DeepSeek sheet's frames 5-7 are drawn off-grid to the left; the
+ * Ellen sheet is left untouched. */
+const SLEEP_OFFSETS: Readonly<Record<string, Readonly<Record<number, number>>>> = {
+  ellen: {},
+  native: { 4: -5, 5: -15, 6: -5 },
+}
+
 /** Quote keys the pet speaks on a direct click. */
 const QUOTE_KEYS = [
   'pet.quote.1', 'pet.quote.2', 'pet.quote.3', 'pet.quote.4', 'pet.quote.5', 'pet.quote.6',
@@ -210,7 +218,8 @@ export function Pet({ t, useStore }: PetProps) {
   // The sheet is always scaled to one fixed 2:1 box (COLS×ROWS square cells at
   // PET_WIDTH), so a wide frame spans two columns without distorting the sheet.
   const backgroundSize = `${COLS * PET_WIDTH}px ${ROWS * PET_WIDTH}px`
-  const backgroundPosition = `${-frameSpec.col * PET_WIDTH}px ${-spec.row * PET_WIDTH}px`
+  const offsetX = action === 'sleep' ? SLEEP_OFFSETS[accent]?.[frame] ?? 0 : 0
+  const backgroundPosition = `${-frameSpec.col * PET_WIDTH + offsetX}px ${-spec.row * PET_WIDTH}px`
   const width = PET_WIDTH * frameSpec.span
   const height = PET_WIDTH
   const spriteUrl = accent === 'ellen' ? '/Sprite_ailian.png' : '/Sprite_deepseek.png'

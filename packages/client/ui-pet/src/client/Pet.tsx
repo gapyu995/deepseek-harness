@@ -37,6 +37,8 @@ const CLICK_SLOP = 4
 const BUBBLE_MS = 3500
 const BUBBLE_OUT_MS = 150
 const SLEEP_MS = 30000
+/** How long a press must hold before it counts as a long-press to sleep, in ms. */
+const LONG_PRESS_MS = 500
 
 /** One selectable action: which row it plays plus frame count and rate. */
 type ActionName = 'idle' | 'walk' | 'happy' | 'sleep'
@@ -60,11 +62,26 @@ const ACTIONS: Record<ActionName, { row: number; frames: readonly FrameSpec[]; f
 }
 
 /** Sleep-row horizontal display offsets (px), keyed by accent then frame index.
- * Only the DeepSeek sheet's frames 5-7 are drawn off-grid to the left; the
- * Ellen sheet is left untouched. */
+ * The DeepSeek sheet's frames 5-7 and the Ellen sheet's frames 6-7 are drawn
+ * off-grid to the left. */
 const SLEEP_OFFSETS: Readonly<Record<string, Readonly<Record<number, number>>>> = {
-  ellen: {},
+  ellen: { 5: -15, 6: -7 },
   native: { 4: -5, 5: -15, 6: -5 },
+}
+
+/** Vertical display offset (px) applied to every frame, keyed by accent: the
+ * Ellen sheet's frames sit 10px low, so shift them up; DeepSeek stays put. */
+const SHEET_OFFSET_Y: Readonly<Record<string, number>> = {
+  ellen: -10,
+  native: 0,
+}
+
+/** Extra vertical offset (px) per row, keyed by accent then row index: the
+ * Ellen happy (row 2) and sleep (row 3) rows sit another 5px low; DeepSeek
+ * stays put. */
+const ROW_OFFSET_Y: Readonly<Record<string, Readonly<Record<number, number>>>> = {
+  ellen: { 2: -15, 3: -15 },
+  native: {},
 }
 
 /** Quote keys the pet speaks on a direct click. */
@@ -104,6 +121,8 @@ export function Pet({ t, useStore }: PetProps) {
   const bubbleCloseTimer = useRef<number | null>(null)
   const bubbleSeq = useRef(0)
   const sleepTimer = useRef<number | null>(null)
+  const longPressTimer = useRef<number | null>(null)
+  const longPressed = useRef(false)
 
   // Advance the frame for the active action; reduced motion freezes frame 0.
   useEffect(() => {
@@ -131,6 +150,7 @@ export function Pet({ t, useStore }: PetProps) {
       if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current)
       if (bubbleCloseTimer.current !== null) window.clearTimeout(bubbleCloseTimer.current)
       if (sleepTimer.current !== null) window.clearTimeout(sleepTimer.current)
+      if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
     }
   }, [])
 
@@ -155,12 +175,23 @@ export function Pet({ t, useStore }: PetProps) {
     setDragging(true)
     clearSleep()
     setAction('walk')
+    longPressed.current = false
+    if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current)
+    longPressTimer.current = window.setTimeout(() => {
+      setAction('sleep')
+      longPressed.current = true
+      longPressTimer.current = null
+    }, LONG_PRESS_MS)
   }
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>): void => {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
     if (Math.abs(event.clientX - drag.current.startX) + Math.abs(event.clientY - drag.current.startY) > CLICK_SLOP) {
       drag.current.moved = true
+      if (longPressTimer.current !== null) {
+        window.clearTimeout(longPressTimer.current)
+        longPressTimer.current = null
+      }
     }
     setPos({
       x: clamp(drag.current.originX + event.clientX - drag.current.startX, window.innerWidth - DRAG_KEEP),
@@ -171,9 +202,15 @@ export function Pet({ t, useStore }: PetProps) {
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>): void => {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
     event.currentTarget.releasePointerCapture(event.pointerId)
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
     setDragging(false)
-    setAction('idle')
-    armSleep()
+    if (!longPressed.current) {
+      setAction('idle')
+      armSleep()
+    }
   }
 
   const poke = (): void => {
@@ -219,7 +256,8 @@ export function Pet({ t, useStore }: PetProps) {
   // PET_WIDTH), so a wide frame spans two columns without distorting the sheet.
   const backgroundSize = `${COLS * PET_WIDTH}px ${ROWS * PET_WIDTH}px`
   const offsetX = action === 'sleep' ? SLEEP_OFFSETS[accent]?.[frame] ?? 0 : 0
-  const backgroundPosition = `${-frameSpec.col * PET_WIDTH + offsetX}px ${-spec.row * PET_WIDTH}px`
+  const offsetY = (SHEET_OFFSET_Y[accent] ?? 0) + (ROW_OFFSET_Y[accent]?.[spec.row] ?? 0)
+  const backgroundPosition = `${-frameSpec.col * PET_WIDTH + offsetX}px ${-spec.row * PET_WIDTH + offsetY}px`
   const width = PET_WIDTH * frameSpec.span
   const height = PET_WIDTH
   const spriteUrl = accent === 'ellen' ? '/Sprite_ailian.png' : '/Sprite_deepseek.png'
@@ -236,8 +274,11 @@ export function Pet({ t, useStore }: PetProps) {
       onClick={(event) => {
         // A click lands only when the gesture stayed put (target === the root:
         // the inert sprite never reports itself as the target, and the close
-        // control is skipped because it is not the root).
-        if (event.target === event.currentTarget && !drag.current.moved) poke()
+        // control is skipped because it is not the root). A long-press that
+        // already sent the pet to sleep is not a click either.
+        const clicked = event.target === event.currentTarget && !drag.current.moved && !longPressed.current
+        longPressed.current = false
+        if (clicked) poke()
       }}
     >
       {bubble !== null && (

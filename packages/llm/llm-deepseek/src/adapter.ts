@@ -255,10 +255,25 @@ function providerRejectedStreamOptions(status: number, detail: string, rawRespon
     || /stream[_-]?options[^\n]{0,120}(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field/iu.test(text)
 }
 
+/** Detect gateways that translate function tools to an unsupported Anthropic custom variant. */
+function providerRejectedCustomTools(status: number, detail: string, rawResponse: string): boolean {
+  if (status !== 400) return false
+  const text = `${detail}\n${rawResponse}`
+  return /tools\[\d+\][\s\S]{0,240}unknown variant [`"']?custom[`"']?[\s\S]{0,240}expected [`"']?web_search_/iu.test(text)
+    || /unknown variant [`"']?custom[`"']?[\s\S]{0,240}expected [`"']?web_search_/iu.test(text)
+}
+
 /** Remove the optional usage request for gateways that reject its field. */
 function withoutStreamOptions(body: WireRequest): WireRequest {
   const copy = { ...body }
   delete copy.stream_options
+  return copy
+}
+
+/** Remove function tools for gateways whose Anthropic translation accepts only native web search tools. */
+function withoutTools(body: WireRequest): WireRequest {
+  const copy = { ...body }
+  delete copy.tools
   return copy
 }
 
@@ -581,6 +596,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     let representation: 'file' | 'base64' = 'file'
     let fileAttempt = 0
     let omitStreamOptions = false
+    let omitTools = false
     while (true) {
       const usedFiles: UsedRequestFile[] = []
       let body: WireRequest
@@ -633,10 +649,11 @@ export class DeepSeekAdapter extends LlmAdapter {
           continue
         }
       }
+      const transportBody = omitTools ? withoutTools(body) : body
       let extensions: PreparedDeepSeekLlmApiExtensions
       try {
         extensions = await this.config.prepareExtensions({
-          body: body as unknown as Readonly<Record<string, DeepSeekLlmApiJson>>,
+          body: transportBody as unknown as Readonly<Record<string, DeepSeekLlmApiJson>>,
           signal,
           ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
           ...options.purpose === undefined ? {} : { purpose: options.purpose },
@@ -645,13 +662,13 @@ export class DeepSeekAdapter extends LlmAdapter {
         throw new LlmError('DeepSeek request extension preparation failed', 'REQUEST_EXTENSION', { cause: error })
       }
       for (const field of Object.keys(extensions.fields)) {
-        if (Object.hasOwn(body, field)) {
+        if (Object.hasOwn(transportBody, field)) {
           throw new LlmError(`DeepSeek request extension field ${JSON.stringify(field)} collides with the base request`, 'REQUEST_EXTENSION')
         }
       }
       // Prepared outside the try so the TRANSPORT label below covers exactly the
       // transport boundary, never a serialization failure.
-      const requestBody = { ...body, ...extensions.fields }
+      const requestBody = { ...transportBody, ...extensions.fields }
       const payload = JSON.stringify(omitStreamOptions
         ? withoutStreamOptions(requestBody as WireRequest)
         : requestBody)
@@ -691,6 +708,10 @@ export class DeepSeekAdapter extends LlmAdapter {
           .join(' ')
         if (!omitStreamOptions && providerRejectedStreamOptions(response.status, detail, rawResponse)) {
           omitStreamOptions = true
+          continue
+        }
+        if (!omitTools && providerRejectedCustomTools(response.status, detail, rawResponse)) {
+          omitTools = true
           continue
         }
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)

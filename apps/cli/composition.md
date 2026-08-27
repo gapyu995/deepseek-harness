@@ -88,6 +88,8 @@ flowchart LR
   cfg --> plugin_dsh_base_skill_filesystem
   plugin_dsh_base_skill_badge["skill-badge<br/>@deepseek-ai/dsh-skill-badge"]
   cfg --> plugin_dsh_base_skill_badge
+  plugin_dsh_base_skill_pdf_to_word["skill-pdf-to-word<br/>@deepseek-ai/dsh-skill-pdf-to-word"]
+  cfg --> plugin_dsh_base_skill_pdf_to_word
   plugin_dsh_base_tool_skill["tool-skill<br/>@deepseek-ai/dsh-tool-skill"]
   cfg --> plugin_dsh_base_tool_skill
   plugin_dsh_base_commands["commands<br/>@deepseek-ai/dsh-commands"]
@@ -208,6 +210,7 @@ flowchart LR
 | `skill` | `@deepseek-ai/dsh-skill` |
 | `skill-filesystem` | `@deepseek-ai/dsh-skill-filesystem` |
 | `skill-badge` | `@deepseek-ai/dsh-skill-badge` |
+| `skill-pdf-to-word` | `@deepseek-ai/dsh-skill-pdf-to-word` |
 | `tool-skill` | `@deepseek-ai/dsh-tool-skill` |
 | `commands` | `@deepseek-ai/dsh-commands` |
 | `command-feedback` | `@deepseek-ai/dsh-command-feedback` |

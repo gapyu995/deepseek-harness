@@ -3,16 +3,17 @@
 import { runInNewContext } from 'node:vm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { bootThemeInjection } from '../src/boot-theme.ts'
-import type { ThemePreference } from '../src/theme-settings.ts'
+import type { ThemeAccent, ThemePreference } from '../src/theme-settings.ts'
 
 const DARK_ATTRIBUTE = 'data-ds-dark-theme'
+const ELLEN_ATTRIBUTE = 'data-ds-ellen-theme'
 
 function mockSystemDark(matches: boolean): void {
   vi.stubGlobal('matchMedia', vi.fn(() => ({ matches }) as MediaQueryList))
 }
 
-function executeBootstrap(preference?: ThemePreference): void {
-  const row = bootThemeInjection(preference)
+function executeBootstrap(preference?: ThemePreference, accent?: ThemeAccent): void {
+  const row = bootThemeInjection(preference, accent)
   if (row.kind !== 'script') throw new Error('theme bootstrap row is not a script')
   runInNewContext(row.text, { document, matchMedia: globalThis.matchMedia })
 }
@@ -22,6 +23,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   document.documentElement.style.removeProperty('color-scheme')
   document.body.removeAttribute(DARK_ATTRIBUTE)
+  document.body.removeAttribute(ELLEN_ATTRIBUTE)
 })
 
 describe('theme bootstrap row', () => {
@@ -57,5 +59,13 @@ describe('theme bootstrap row', () => {
     executeBootstrap()
     expect(document.documentElement.style.colorScheme).toBe('light')
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+  })
+
+  it('sets the Ellen accent attribute and clears it for the native accent', () => {
+    mockSystemDark(false)
+    executeBootstrap('light', 'ellen')
+    expect(document.body.hasAttribute(ELLEN_ATTRIBUTE)).toBe(true)
+    executeBootstrap('light', 'native')
+    expect(document.body.hasAttribute(ELLEN_ATTRIBUTE)).toBe(false)
   })
 })

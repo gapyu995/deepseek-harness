@@ -65,9 +65,10 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 }
 
 /**
- * The soft blue backdrop ellipse (figma 313:14109). Rendered by the hero
- * owner (ConversationRoot), not HeroShell, so it can center on the input
- * card; the owner's className supplies all positioning.
+ * The soft backdrop ellipses (figma 313:14109): one blue ellipse for the
+ * native accent, recolored to a red + ice pair by the Ellen accent tokens.
+ * Rendered by the hero owner (ConversationRoot), not HeroShell, so it can
+ * center on the input card; the owner's className supplies all positioning.
  * @param props.className - positioning class from the owner.
  * @returns the blurred-ellipse svg element.
  */
@@ -92,7 +93,8 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
         </filter>
       </defs>
       <g filter={`url(#${glowFilterId})`}>
-        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" fill="#6187D8" fillOpacity="0.08" />
+        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" style={{ fill: 'var(--dsw-hero-glow)' }} fillOpacity="0.10" />
+        <ellipse cx="525.5" cy="234" rx="260" ry="88" style={{ fill: 'var(--dsw-hero-glow-ice)' }} fillOpacity="0.10" />
       </g>
     </svg>
   )

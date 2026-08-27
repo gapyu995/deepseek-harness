@@ -309,6 +309,23 @@ function modelInfo(provider: string, model: DeepSeekCatalogModel): LlmModelInfo 
   }
 }
 
+function reasoningInfo(
+  thinking: DeepSeekConnectionOptions['defaults']['thinking'],
+  effort: DeepSeekConnectionOptions['defaults']['reasoningEffort'],
+) {
+  if (thinking === 'disabled') {
+    return { efforts: OFF_ONLY_REASONING_EFFORTS, defaultEffort: OFF_REASONING_EFFORT }
+  }
+  return {
+    efforts: REASONING_EFFORTS,
+    defaultEffort: effort === 'off'
+      ? OFF_REASONING_EFFORT
+      : effort === 'low'
+        ? LOW_REASONING_EFFORT
+        : effort === 'max' ? MAX_REASONING_EFFORT : HIGH_REASONING_EFFORT,
+  }
+}
+
 function providerRetryAfterMs(value: string | null): number | undefined {
   if (value === null) return undefined
   if (/^\d+$/.test(value)) {
@@ -368,7 +385,9 @@ export class DeepSeekAdapter extends LlmAdapter {
   }
 
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
-    return Promise.resolve(this.config.options().models.map(model => modelInfo(provider, model)))
+    const connection = this.config.options()
+    const reasoning = reasoningInfo(connection.defaults.thinking, connection.defaults.reasoningEffort)
+    return Promise.resolve(connection.models.map(model => ({ ...modelInfo(provider, model), reasoning })))
   }
 
   override resolveModel(
@@ -396,25 +415,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         : modelInfo(provider, configured),
       context: { contextWindow },
       defaultMaxTokens: configured?.maxTokens ?? connection.maxTokens,
-      ...connection.defaults.thinking === 'disabled'
-        ? {
-          reasoning: {
-            efforts: OFF_ONLY_REASONING_EFFORTS,
-            defaultEffort: OFF_REASONING_EFFORT,
-          },
-        }
-        : {
-          reasoning: {
-            efforts: REASONING_EFFORTS,
-            defaultEffort: connection.defaults.reasoningEffort === 'off'
-              ? OFF_REASONING_EFFORT
-              : connection.defaults.reasoningEffort === 'low'
-                ? LOW_REASONING_EFFORT
-                : connection.defaults.reasoningEffort === 'max'
-                  ? MAX_REASONING_EFFORT
-                  : HIGH_REASONING_EFFORT,
-          },
-        },
+      reasoning: reasoningInfo(connection.defaults.thinking, connection.defaults.reasoningEffort),
     }
   }
 

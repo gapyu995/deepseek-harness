@@ -5,24 +5,25 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { bootThemeInjection } from './boot-theme.ts'
 import {
-  DEFAULT_PREFERENCE, THEME_SETTINGS_NAMESPACE, ThemeSettingsSchema,
-  type ThemePreference, type ThemeSettings,
+  DEFAULT_ACCENT, DEFAULT_PREFERENCE, THEME_SETTINGS_NAMESPACE, ThemeSettingsSchema,
+  type ThemeAccent, type ThemePreference, type ThemeSettings,
 } from './theme-settings.ts'
 
 export {
-  DEFAULT_PREFERENCE, THEME_PREFERENCE_FIELD, THEME_PREFERENCES, THEME_SETTINGS_NAMESPACE,
-  type ThemePreference, type ThemeSettings,
+  DEFAULT_ACCENT, DEFAULT_PREFERENCE, THEME_ACCENT_FIELD, THEME_ACCENTS,
+  THEME_PREFERENCE_FIELD, THEME_PREFERENCES, THEME_SETTINGS_NAMESPACE,
+  type ThemeAccent, type ThemePreference, type ThemeSettings,
 } from './theme-settings.ts'
 
 const THEME_NAMESPACE = settingsNamespace(THEME_SETTINGS_NAMESPACE)
 
-/** Read the registered preference or use the schema default without a settings provider. */
-function readPreference(ctx: Context): ThemePreference {
+/** Read the registered preference and accent, or schema defaults without a settings provider. */
+function readSettings(ctx: Context): { preference: ThemePreference; accent: ThemeAccent } {
   const settings = ctx.get('settings')
-  if (settings === undefined) return DEFAULT_PREFERENCE
+  if (settings === undefined) return { preference: DEFAULT_PREFERENCE, accent: DEFAULT_ACCENT }
   const section = settings.get(THEME_NAMESPACE) as ThemeSettings | undefined
-  if (section === undefined) return DEFAULT_PREFERENCE
-  return section.preference
+  if (section === undefined) return { preference: DEFAULT_PREFERENCE, accent: DEFAULT_ACCENT }
+  return { preference: section.preference, accent: section.accent }
 }
 
 /**
@@ -36,6 +37,7 @@ export function apply(ctx: Context): void {
     settingsCtx.settings.register(THEME_NAMESPACE, ThemeSettingsSchema)
   })
   ctx.on('webserver/index-inject', (table) => {
-    table.push(bootThemeInjection(readPreference(ctx)))
+    const { preference, accent } = readSettings(ctx)
+    table.push(bootThemeInjection(preference, accent))
   })
 }

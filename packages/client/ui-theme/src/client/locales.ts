@@ -6,6 +6,9 @@ export const zh = {
   'appearance.light': '浅色',
   'appearance.dark': '深色',
   'appearance.system': '跟随系统',
+  'appearance.accentTitle': '主题风格',
+  'appearance.accent.native': '原生',
+  'appearance.accent.ellen': '艾莲',
 } satisfies Record<string, string>
 
 /** The settings.theme namespace key union. */
@@ -17,4 +20,7 @@ export const en = {
   'appearance.light': 'Light',
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
+  'appearance.accentTitle': 'Theme',
+  'appearance.accent.native': 'Native',
+  'appearance.accent.ellen': 'Ellen',
 } satisfies Record<ThemeKey, string>

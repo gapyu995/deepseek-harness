@@ -1,0 +1,22 @@
+/* Ellen accent (ZZZ Ellen Joe): re-map the brand blue steps and the hardcoded
+   brand primary to Ellen's coral-red + ice palette. A single block covers both
+   light and dark schemes because the blue steps are scheme-invariant; the
+   alias tokens resolve through these overrides. Selected by the
+   `body[data-ds-ellen-theme]` attribute, set from the theme settings accent. */
+
+body[data-ds-ellen-theme] {
+  --dsw-static-deepseek-100: rgb(251, 226, 229);
+  --dsw-static-deepseek-200: rgb(248, 204, 211);
+  --dsw-static-deepseek-300: rgb(243, 173, 183);
+  --dsw-static-deepseek-400: rgb(234, 128, 142);
+  --dsw-static-deepseek-450: rgb(226, 100, 118);
+  --dsw-static-deepseek-500: rgb(217, 79, 99);
+  --dsw-static-deepseek-50: rgb(253, 241, 242);
+  --dsw-static-deepseek-600: rgb(183, 56, 76);
+  --dsw-static-deepseek-700-delete: rgb(143, 46, 61);
+  --dsw-static-deepseek-800: rgb(96, 42, 50);
+  --dsw-static-deepseek-900: rgb(62, 33, 38);
+  --dsw-alias-brand-primary-new-colorprimary-new-color: rgb(217, 79, 99);
+  --dsw-hero-glow: #e14b5c;
+  --dsw-hero-glow-ice: #6ec6e8;
+}

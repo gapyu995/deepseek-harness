@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-/** AppearanceRow behavior: three cubes, selection follows the persisted
- * preference, clicks drive setTheme. */
+/** AppearanceRow behavior: preference cubes plus accent cubes, selection
+ * follows the persisted store, clicks drive the injected writes. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
@@ -8,7 +8,7 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { AppearanceRow } from '../src/client/AppearanceRow.tsx'
 import type { AppearanceRowComponentProps } from '../src/client/AppearanceRow.tsx'
 import { createAppearanceRowStore } from '../src/client/settings-store.ts'
-import type { ThemePreference } from '../src/client/index.ts'
+import type { ThemeAccent, ThemePreference } from '../src/client/index.ts'
 
 afterEach(cleanup)
 
@@ -17,6 +17,9 @@ const COPY: Record<string, string> = {
   'appearance.light': 'Light',
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
+  'appearance.accentTitle': 'Theme',
+  'appearance.accent.native': 'Native',
+  'appearance.accent.ellen': 'Ellen',
 }
 
 /** Empty global standard-kit hooks (the row reads neither). */
@@ -33,11 +36,13 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
-function mount(preference: ThemePreference = 'system') {
+function mount(preference: ThemePreference = 'system', accent: ThemeAccent = 'native') {
   // Real store instance — the sanctioned zero-machinery path for tests.
   const store = createAppearanceRowStore().create()
   store.actions.sync(preference, 0)
+  store.actions.syncAccent(accent)
   const setTheme = vi.fn()
+  const setAccent = vi.fn()
   const props: AppearanceRowComponentProps = {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
@@ -45,21 +50,29 @@ function mount(preference: ThemePreference = 'system') {
     actions: store.actions,
     t: (key: string) => COPY[key] ?? key,
     setTheme,
+    setAccent,
   }
   render(<AppearanceRow {...props} />)
-  return { store, setTheme }
+  return { store, setTheme, setAccent }
 }
 
 const pressed = (name: RegExp): string | null =>
   screen.getByRole('button', { name }).getAttribute('aria-pressed')
 
 describe('AppearanceRow', () => {
-  it('renders the title and three cubes with the preference cube selected', () => {
+  it('renders the title and preference cubes with the preference cube selected', () => {
     mount('dark')
     expect(screen.getByText('Appearance')).toBeDefined()
     expect(pressed(/Dark/)).toBe('true')
     expect(pressed(/Light/)).toBe('false')
     expect(pressed(/System/)).toBe('false')
+  })
+
+  it('renders the accent cubes with the accent cube selected', () => {
+    mount('system', 'ellen')
+    expect(screen.getByText('Theme')).toBeDefined()
+    expect(pressed(/Ellen/)).toBe('true')
+    expect(pressed(/Native/)).toBe('false')
   })
 
   it('click drives setTheme; selection follows the store mirror, not the click echo', () => {
@@ -71,5 +84,14 @@ describe('AppearanceRow', () => {
     act(() => { b.store.actions.sync('light', 1) })
     expect(pressed(/Light/)).toBe('true')
     expect(pressed(/Dark/)).toBe('false')
+  })
+
+  it('click drives setAccent; selection follows the store mirror', () => {
+    const b = mount('system', 'native')
+    fireEvent.click(screen.getByRole('button', { name: /Ellen/ }))
+    expect(b.setAccent).toHaveBeenCalledWith('ellen')
+    act(() => { b.store.actions.syncAccent('ellen') })
+    expect(pressed(/Ellen/)).toBe('true')
+    expect(pressed(/Native/)).toBe('false')
   })
 })

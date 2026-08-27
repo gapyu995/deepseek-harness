@@ -236,6 +236,35 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.requests[1]).not.toHaveProperty('stream_options')
   })
 
+  it('retries without function tools when an Anthropic gateway accepts only native web search tools', async () => {
+    const server = await mockServer([
+      {
+        kind: 'http-error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'litellm.BadRequestError: AnthropicException - tools[0]: unknown variant `custom`, expected `web_search_20250305` or `web_search_20260209`',
+          },
+        }),
+      },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+
+    await assemble(ctx, {
+      model: 'deepseek-v4-pro',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+      tools: [{ name: 'web_search', description: 'search', parameters: { type: 'object' } }],
+    })
+
+    expect(server.requests).toHaveLength(2)
+    expect(server.requests[0]).toHaveProperty('tools')
+    expect(server.requests[1]).not.toHaveProperty('tools')
+  })
+
   it('uploads a durable image once and sends only its Files API id to the vision model', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
     const signalSeen: (AbortSignal | undefined)[] = []

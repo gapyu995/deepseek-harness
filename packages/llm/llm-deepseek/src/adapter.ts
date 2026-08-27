@@ -256,10 +256,25 @@ function providerRejectedStreamOptions(status: number, detail: string, rawRespon
     || /stream[_-]?options[^\n]{0,120}(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field/iu.test(text)
 }
 
+/** Detect gateways that translate function tools to an unsupported Anthropic custom variant. */
+function providerRejectedCustomTools(status: number, detail: string, rawResponse: string): boolean {
+  if (status !== 400) return false
+  const text = `${detail}\n${rawResponse}`
+  return /tools\[\d+\][\s\S]{0,240}unknown variant [`"']?custom[`"']?[\s\S]{0,240}expected [`"']?web_search_/iu.test(text)
+    || /unknown variant [`"']?custom[`"']?[\s\S]{0,240}expected [`"']?web_search_/iu.test(text)
+}
+
 /** Remove the optional usage request for gateways that reject its field. */
 function withoutStreamOptions(body: WireRequest): WireRequest {
   const copy = { ...body }
   delete copy.stream_options
+  return copy
+}
+
+/** Remove function tools for gateways whose Anthropic translation accepts only native web search tools. */
+function withoutTools(body: WireRequest): WireRequest {
+  const copy = { ...body }
+  delete copy.tools
   return copy
 }
 
@@ -565,6 +580,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     let representation: 'file' | 'base64' = 'file'
     let fileAttempt = 0
     let omitStreamOptions = false
+    let omitTools = false
     while (true) {
       const usedFiles: UsedRequestFile[] = []
       let body: WireRequest
@@ -615,7 +631,8 @@ export class DeepSeekAdapter extends LlmAdapter {
           continue
         }
       }
-      const payload = JSON.stringify(omitStreamOptions ? withoutStreamOptions(body) : body)
+      const payloadBody = omitTools ? withoutTools(body) : body
+      const payload = JSON.stringify(omitStreamOptions ? withoutStreamOptions(payloadBody) : payloadBody)
 
       // TODO(http): adopt the Cordis HTTP service when shared transport configuration
       // outweighs its additional runtime dependencies.
@@ -652,6 +669,10 @@ export class DeepSeekAdapter extends LlmAdapter {
           .join(' ')
         if (!omitStreamOptions && providerRejectedStreamOptions(response.status, detail, rawResponse)) {
           omitStreamOptions = true
+          continue
+        }
+        if (!omitTools && providerRejectedCustomTools(response.status, detail, rawResponse)) {
+          omitTools = true
           continue
         }
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)

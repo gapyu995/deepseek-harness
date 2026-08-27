@@ -94,6 +94,7 @@ DeepSeek request identity is separate from app attribution. After credential res
 
 - Streaming only (`stream_options.include_usage` always on). `usage` may arrive attached to the finish chunk or as a trailing usage-only chunk — the translator defers both to `[DONE]`, so `usage` always precedes `finish` and nothing follows `finish`.
 - If an OpenAI-compatible gateway returns HTTP 400 for an unknown `stream_options` field, the adapter retries that request once without the optional field; gateways that accept it keep the usage request on the wire.
+- If a gateway translates function tools to Anthropic and rejects the resulting `custom` tool variant (only native `web_search_*` tools are accepted), the adapter retries once without function tools so the text request can still complete instead of surfacing HTTP 400. Tool execution remains available on gateways that accept the standard function-tool shape.
 - The adapter-owned `off` effort maps to `thinking: {type: 'disabled'}` and never crosses the wire as `reasoning_effort: 'off'`.
 - The first thinking-mode chunk carries `reasoning_content: ""` — handled (no spurious reasoning block).
 - **Reasoning passback rule**: every assistant turn that carried reasoning serializes `reasoning_content` back in history. Thinking mode requires it on tool-call turns; DeepSeek ignores it elsewhere, while a gateway re-encoding the conversation for another vendor recovers that turn's upstream thinking signature by hashing the replayed text.

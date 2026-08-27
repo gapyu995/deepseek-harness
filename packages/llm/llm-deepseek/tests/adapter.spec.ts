@@ -209,6 +209,33 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.requests[1]).not.toHaveProperty('stream_options')
   })
 
+  it('recognizes a LiteLLM-wrapped stream_options schema error', async () => {
+    const server = await mockServer([
+      {
+        kind: 'http-error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'litellm.BadRequestError: OpenAIException - {"error":{"type":"invalid_request_error","code":"400001","message":"json: unknown field \\\"stream_options\\\" Request id: test","source":"client","request_id":"test"}}No fallback model group found for original model_group=deepseek-v4-pro.',
+          },
+        }),
+      },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+
+    await assemble(ctx, {
+      model: 'deepseek-v4-pro',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+
+    expect(server.requests).toHaveLength(2)
+    expect(server.requests[1]).not.toHaveProperty('stream_options')
+  })
+
   it('uploads a durable image once and sends only its Files API id to the vision model', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
     const signalSeen: (AbortSignal | undefined)[] = []

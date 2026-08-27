@@ -249,9 +249,11 @@ function providerRejectedFileId(detail: string): boolean {
 }
 
 /** Detect the explicit schema error returned by gateways that reject stream_options. */
-function providerRejectedStreamOptions(status: number, detail: string): boolean {
-  return status === 400
-    && /(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field[^\n]{0,80}stream_options/iu.test(detail)
+function providerRejectedStreamOptions(status: number, detail: string, rawResponse: string): boolean {
+  if (status !== 400) return false
+  const text = `${detail}\n${rawResponse}`
+  return /(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field[^\n]{0,120}stream[_-]?options/iu.test(text)
+    || /stream[_-]?options[^\n]{0,120}(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field/iu.test(text)
 }
 
 /** Remove the optional usage request for gateways that reject its field. */
@@ -648,7 +650,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         const detail = [providerError?.code, providerError?.type, providerError?.message]
           .filter((field): field is string => typeof field === 'string')
           .join(' ')
-        if (!omitStreamOptions && providerRejectedStreamOptions(response.status, detail)) {
+        if (!omitStreamOptions && providerRejectedStreamOptions(response.status, detail, rawResponse)) {
           omitStreamOptions = true
           continue
         }

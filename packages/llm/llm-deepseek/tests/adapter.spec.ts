@@ -366,6 +366,31 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.headers[0]).not.toHaveProperty('x-deepseek-harness-compact')
   })
 
+  it('retries once without stream_options when a gateway rejects that field', async () => {
+    const server = await mockServer([
+      {
+        kind: 'http-error',
+        status: 400,
+        body: JSON.stringify({ error: { message: 'json: unknown field "stream_options"', code: '400001' } }),
+      },
+      { kind: 'sse', events: textEvents },
+    ])
+    const ctx = await harness(server.url)
+
+    const result = await assemble(ctx, {
+      model: 'deepseek-v4-pro',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+
+    expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
+    expect(server.requests).toHaveLength(2)
+    expect(server.requests[0]).toHaveProperty('stream_options', { include_usage: true })
+    expect(server.requests[1]).not.toHaveProperty('stream_options')
+  })
+
   it('uploads a durable image once and sends only its Files API id to the vision model', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
     const signalSeen: (AbortSignal | undefined)[] = []

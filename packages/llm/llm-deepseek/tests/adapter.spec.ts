@@ -1855,6 +1855,15 @@ describe('plugin registration and config', () => {
       id: 'adapter-model',
       name: 'adapter-model',
       inputModalities: ['text'],
+      reasoning: {
+        efforts: [
+          { id: ReasoningEffortId('off'), name: 'Off' },
+          { id: ReasoningEffortId('low'), name: 'Low' },
+          { id: ReasoningEffortId('high'), name: 'High' },
+          { id: ReasoningEffortId('max'), name: 'Max' },
+        ],
+        defaultEffort: ReasoningEffortId('high'),
+      },
     }])
   })
 

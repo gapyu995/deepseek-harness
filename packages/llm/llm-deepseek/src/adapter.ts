@@ -248,6 +248,19 @@ function providerRejectedFileId(detail: string): boolean {
   return file && (missing || invalidId)
 }
 
+/** Detect the explicit schema error returned by gateways that reject stream_options. */
+function providerRejectedStreamOptions(status: number, detail: string): boolean {
+  return status === 400
+    && /(?:unknown|unrecognized|unsupported)\s+(?:request\s+)?field[^\n]{0,80}stream_options/iu.test(detail)
+}
+
+/** Remove the optional usage request for gateways that reject its field. */
+function withoutStreamOptions(body: WireRequest): WireRequest {
+  const copy = { ...body }
+  delete copy.stream_options
+  return copy
+}
+
 function detailNamesFileId(detail: string, fileId: DeepSeekFileId): boolean {
   let index = detail.indexOf(fileId)
   while (index >= 0) {
@@ -549,6 +562,7 @@ export class DeepSeekAdapter extends LlmAdapter {
       : await prepareRequestImages(requestOptions, attachments, model, signal)
     let representation: 'file' | 'base64' = 'file'
     let fileAttempt = 0
+    let omitStreamOptions = false
     while (true) {
       const usedFiles: UsedRequestFile[] = []
       let body: WireRequest
@@ -599,7 +613,7 @@ export class DeepSeekAdapter extends LlmAdapter {
           continue
         }
       }
-      const payload = JSON.stringify(body)
+      const payload = JSON.stringify(omitStreamOptions ? withoutStreamOptions(body) : body)
 
       // TODO(http): adopt the Cordis HTTP service when shared transport configuration
       // outweighs its additional runtime dependencies.
@@ -634,6 +648,10 @@ export class DeepSeekAdapter extends LlmAdapter {
         const detail = [providerError?.code, providerError?.type, providerError?.message]
           .filter((field): field is string => typeof field === 'string')
           .join(' ')
+        if (!omitStreamOptions && providerRejectedStreamOptions(response.status, detail)) {
+          omitStreamOptions = true
+          continue
+        }
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)
         if (staleFile) {
           await Promise.all(staleMappings(usedFiles, detail).map(file => (

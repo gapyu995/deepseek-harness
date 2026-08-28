@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  Button, IconCloseFill14, IconPersonalizationOutline16,
+  Button, IconChecklistOutline14, IconCloseFill14, IconPersonalizationOutline16,
   IconProjectAddOutline16, IconSearchOutline16, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -262,6 +262,12 @@ type SessionTreeProps = Pick<
   onSessionArchive: (sessionId: SessionNode['id']) => void
   /** Session order behavior: fixed after edits, or additionally promoted by user activity. */
   orderBy: SessionOrderBy
+  /** Multi-select is active: rows render checkboxes and toggle instead of opening. */
+  selectMode: boolean
+  /** Checked session ids in multi-select mode. */
+  selectedIds: ReadonlySet<SessionId>
+  /** Toggle one session's multi-select membership. */
+  onToggleSelect: (sessionId: SessionId) => void
 }
 
 /** The scrolling session tree; unmounting drops the sessions subscription and expand-all state. */
@@ -271,6 +277,7 @@ function SessionTree({
   insertWorkspaceBefore, insertSessionBefore, orderBy,
   groupExpansion, setGroupExpanded,
   sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
+  selectMode, selectedIds, onToggleSelect,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
   const pendingInteractions = useSessionPendingInteraction(s => s)
@@ -565,6 +572,9 @@ function SessionTree({
                     onFork={forkSession}
                     onArchive={onSessionArchive}
                     drag={dragProps}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(node.id)}
+                    onToggleSelect={onToggleSelect}
                     t={t}
                   />
                 )
@@ -595,6 +605,7 @@ function FlatList({
   useSessions, useSessionPendingInteraction, open, forkSession, onSessionRename, onSessionArchive,
   archivedSessionIds,
   orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
+  selectMode, selectedIds, onToggleSelect,
 }: Pick<
   SessionTreeProps,
   | 'useSessions'
@@ -610,6 +621,9 @@ function FlatList({
   | 'syncSessionOrderAccount'
   | 'setSessionOrder'
   | 't'
+  | 'selectMode'
+  | 'selectedIds'
+  | 'onToggleSelect'
 >) {
   const list = useSessions(s => s)
   const pendingInteractions = useSessionPendingInteraction(s => s)
@@ -684,6 +698,9 @@ function FlatList({
               onFork={forkSession}
               onArchive={onSessionArchive}
               flat
+              selectMode={selectMode}
+              selected={selectedIds.has(node.id)}
+              onToggleSelect={onToggleSelect}
               drag={{
                 start: () => {
                   dropCommitted.current = false
@@ -828,6 +845,18 @@ export function WorkspaceBrowser({
   const workspaces = useWorkspaces(state => state.items)
   const workspacePhase = useWorkspaces(state => state.phase)
   const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
+  // Multi-select archive: local viewing state (the select toggle, the checked
+  // set, and the "select all" account derived from the live session list).
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<SessionId>>(() => new Set())
+  const sessionList = useSessions(s => s)
+  const selectableIds = useMemo(() => {
+    const archived = new Set(archivedSessionIds)
+    return sessionList.ids.filter((id) => {
+      const session = sessionList.byId[id]
+      return session !== undefined && !session.blank && !archived.has(id)
+    })
+  }, [sessionList, archivedSessionIds])
   // Live occupancy of this surface's directory-flow hole (the same source the
   // flow reads): a composition without a picking affordance can add nothing.
   const directoryFlowAvailable = useDirectoryFlow(occupied => occupied)
@@ -1032,6 +1061,44 @@ export function WorkspaceBrowser({
     })
   }
 
+  // Multi-select archive: enter/exit select mode, toggle one row, select every
+  // selectable session, and commit the checked set sequentially (each archive
+  // read-modify-writes the registry-global set, so concurrent commits could
+  // lose memberships — the loop awaits each before the next).
+  const exitSelect = () => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      exitSelect()
+      return
+    }
+    setQuery('')
+    setSearchExpanded(false)
+    setSelectMode(true)
+  }
+  const toggleSelect = (sessionId: SessionId) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous)
+      if (next.has(sessionId)) next.delete(sessionId)
+      else next.add(sessionId)
+      return next
+    })
+  }
+  const selectAll = () => { setSelectedIds(new Set(selectableIds)) }
+  const archiveSelected = async () => {
+    const ids = [...selectedIds]
+    exitSelect()
+    for (const id of ids) {
+      try {
+        await archiveSession(id)
+      } catch (reason) {
+        console.warn('session archive rejected:', reason)
+      }
+    }
+  }
+
   // Delete dialog is separate from the row so a successful removal can
   // unmount that row without tearing down the in-flight confirmation state.
   const [deleteTarget, setDeleteTarget] = useState<{ workspaceId: WorkspaceId; title: string } | null>(null)
@@ -1070,12 +1137,12 @@ export function WorkspaceBrowser({
   return (
     <div className={clsx(css.root, !wide && css.rail)}>
       <div className={css.sectionHeader}>
-        {wide && (
+        {wide && !selectMode && (
           <span className={clsx(css.sectionLabel, css.wide, searchExpanded && css.sectionLabelHidden)}>
             {groupBy === 'flat' ? t('section.sessions') : t('section.workspaces')}
           </span>
         )}
-        {wide && (
+        {wide && !selectMode && (
           <div className={clsx(css.searchSlot, searchExpanded && css.searchSlotExpanded)}>
             <div
               ref={searchRoot}
@@ -1132,35 +1199,67 @@ export function WorkspaceBrowser({
             </div>
           </div>
         )}
-        <div className={clsx(css.headerActions, wide && searchExpanded && css.headerActionsHidden)}>
-          {wide && (
-            <ViewOptionsMenu
-              groupBy={groupBy}
-              orderBy={orderBy}
-              onGroupPick={(mode) => { actions.setGroupBy(mode) }}
-              onOrderPick={(mode) => { actions.setOrderBy(mode) }}
-              t={t}
-            />
-          )}
-          {/* Adding is the button's one action, so a composition with no
-              picking affordance has nothing to offer here: the region hides the
-              button rather than leaving a dead one in the header. */}
-          {directoryFlowAvailable && (
-            <Tooltip label={t('workspace.add')} side="bottom" delayMs={500}>
-              <button
-                ref={wsPlusRef}
-                type="button"
-                className={css.iconButton}
-                aria-label={t('workspace.add')}
-                onClick={() => {
-                  setWsPickerOpen(v => !v)
-                }}
-              >
-                <IconProjectAddOutline16 size={wide ? 16 : 18} />
-              </button>
-            </Tooltip>
-          )}
-        </div>
+        {wide && selectMode ? (
+          <div className={css.selectionBar}>
+            <span className={css.selectionCount}>{t('selection.count', { n: selectedIds.size })}</span>
+            <button type="button" className={css.selectionButton} onClick={selectAll}>
+              {t('selection.selectAll')}
+            </button>
+            <button
+              type="button"
+              className={css.selectionButton}
+              disabled={selectedIds.size === 0}
+              onClick={() => { void archiveSelected() }}
+            >
+              {t('selection.archive')}
+            </button>
+            <button type="button" className={css.selectionButton} onClick={exitSelect}>
+              {t('selection.cancel')}
+            </button>
+          </div>
+        ) : (
+          <div className={clsx(css.headerActions, wide && searchExpanded && css.headerActionsHidden)}>
+            {wide && (
+              <Tooltip label={t('selection.label')} side="bottom" delayMs={500}>
+                <button
+                  type="button"
+                  className={css.iconButton}
+                  aria-label={t('selection.label')}
+                  onClick={toggleSelectMode}
+                >
+                  <IconChecklistOutline14 size={16} />
+                </button>
+              </Tooltip>
+            )}
+            {wide && (
+              <ViewOptionsMenu
+                groupBy={groupBy}
+                orderBy={orderBy}
+                onGroupPick={(mode) => { actions.setGroupBy(mode) }}
+                onOrderPick={(mode) => { actions.setOrderBy(mode) }}
+                t={t}
+              />
+            )}
+            {/* Adding is the button's one action, so a composition with no
+                picking affordance has nothing to offer here: the region hides the
+                button rather than leaving a dead one in the header. */}
+            {directoryFlowAvailable && (
+              <Tooltip label={t('workspace.add')} side="bottom" delayMs={500}>
+                <button
+                  ref={wsPlusRef}
+                  type="button"
+                  className={css.iconButton}
+                  aria-label={t('workspace.add')}
+                  onClick={() => {
+                    setWsPickerOpen(v => !v)
+                  }}
+                >
+                  <IconProjectAddOutline16 size={wide ? 16 : 18} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        )}
         {/* Add flow + its error dialog (same package — direct composition). */}
         <WorkspacePickFlow
           t={t}
@@ -1227,6 +1326,9 @@ export function WorkspaceBrowser({
                 sessionUpdatedAtByAccount={sessionUpdatedAtByAccount}
                 syncSessionOrderAccount={actions.syncSessionOrderAccount}
                 setSessionOrder={actions.setSessionOrder}
+                selectMode={selectMode}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
                 t={t}
               />
             )
@@ -1251,6 +1353,9 @@ export function WorkspaceBrowser({
                 insertSessionBefore={insertSessionBefore}
                 orderBy={orderBy}
                 home={home}
+                selectMode={selectMode}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {
                   setRenameTarget({ workspaceId, currentTitle })

@@ -1,0 +1,83 @@
+/* Ellen accent skin: a two-hue system over the neutral DeepSeek workspace.
+ *
+ * - Coral red (emphasis): the `--dsw-static-deepseek-*` scale becomes coral,
+ *   and different steps mark different emphasis — deepest for primary actions,
+ *   mid for business accents, lightest for soft fills and bubbles. Every alias
+ *   that resolves the deepseek scale recovers coral automatically.
+ * - Sea blue (hierarchy): a new `--dsw-static-sea-*` scale replaces the ice
+ *   blue, and its steps mark structural levels — deep for bluish text, mid for
+ *   interactive hovers, light for code surfaces, and mid for the hero glow.
+ *
+ * Activated by `body[data-ds-ellen-theme]`, orthogonal to
+ * `body[data-ds-dark-theme]`; mode differences ride the alias layer below.
+ */
+
+body[data-ds-ellen-theme] {
+  /* Coral red emphasis scale. */
+  --dsw-static-deepseek-50: #FDF1F2;
+  --dsw-static-deepseek-100: #FBE2E5;
+  --dsw-static-deepseek-200: #F8CCD3;
+  --dsw-static-deepseek-300: #F3ADB7;
+  --dsw-static-deepseek-400: #EA808E;
+  --dsw-static-deepseek-450: #E26476;
+  --dsw-static-deepseek-500: #D94F63;
+  --dsw-static-deepseek-600: #B7384C;
+  --dsw-static-deepseek-700-delete: #8F2E3D;
+  --dsw-static-deepseek-800: #602A32;
+  --dsw-static-deepseek-900: #3E2126;
+  --dsw-alias-brand-primary-new-colorprimary-new-color: #D94F63;
+
+  /* Sea blue hierarchy scale (replaces ice blue; desaturated toward slate). */
+  --dsw-static-sea-50: #F2F6FA;
+  --dsw-static-sea-100: #DFEBF3;
+  --dsw-static-sea-200: #C7DBEA;
+  --dsw-static-sea-300: #9DC2DA;
+  --dsw-static-sea-400: #6CA4C8;
+  --dsw-static-sea-500: #4284B0;
+  --dsw-static-sea-600: #326EA0;
+  --dsw-static-sea-700: #28598A;
+  --dsw-static-sea-800: #1F456B;
+  --dsw-static-sea-900: #163550;
+
+  /* Bluish text and interactive hovers ride the sea-blue hierarchy. */
+  --dsw-alias-label-primary-bluish: var(--dsw-static-sea-700);
+  --dsw-alias-interactive-bg-hover: rgba(66, 132, 176, 0.08);
+  --dsw-alias-interactive-bg-hover-accent: rgba(66, 132, 176, 0.16);
+  --dsw-alias-interactive-bg-active: rgba(50, 110, 160, 0.12);
+
+  /* Code surfaces take the lightest sea-blue steps. */
+  --dsw-alias-markdown-inline-code: var(--dsw-static-sea-100);
+  --dsw-alias-markdown-code-block: var(--dsw-static-sea-50);
+  --dsw-alias-markdown-code-block-banner: var(--dsw-static-sea-50);
+
+  /* Hero glow: coral outer ellipse + sea-blue inner ellipse. */
+  --dsh-hero-glow-outer: #E14B5C;
+  --dsh-hero-glow-outer-opacity: 0.1;
+  --dsh-hero-glow-inner: #4284B0;
+  --dsh-hero-glow-inner-opacity: 0.1;
+}
+
+/* Light: primary actions take the deepest coral, business accents the mid step. */
+body[data-ds-ellen-theme]:not([data-ds-dark-theme]) {
+  --dsw-alias-brand-primary: var(--dsw-static-deepseek-600);
+  --dsw-alias-button-primary-hover: var(--dsw-static-deepseek-500);
+}
+
+/* Dark: primary actions are the light coral; the sea-blue steps desaturate
+   further toward slate so they read as muted surfaces, not neon accents. */
+body[data-ds-ellen-theme][data-ds-dark-theme] {
+  --dsw-alias-brand-primary: var(--dsw-static-deepseek-400);
+  --dsw-alias-button-primary-hover: var(--dsw-static-deepseek-500);
+
+  --dsw-static-sea-300: #AAC0CF;
+  --dsw-static-sea-800: #2E455C;
+  --dsw-static-sea-900: #223445;
+
+  --dsw-alias-label-primary-bluish: var(--dsw-static-sea-300);
+  --dsw-alias-interactive-bg-hover: rgba(170, 192, 207, 0.1);
+  --dsw-alias-interactive-bg-hover-accent: rgba(170, 192, 207, 0.2);
+  --dsw-alias-interactive-bg-active: rgba(170, 192, 207, 0.16);
+  --dsw-alias-markdown-inline-code: var(--dsw-static-sea-800);
+  --dsw-alias-markdown-code-block: var(--dsw-static-sea-900);
+  --dsw-alias-markdown-code-block-banner: var(--dsw-static-sea-800);
+}

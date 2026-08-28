@@ -239,8 +239,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'theme',
-    summary: 'Theme registry and preference owner.',
-    description: 'Theme registry and preference owner. `light`/`dark` are built in (the base stylesheets carry both palettes); third-party themes register alias-layer overrides. Reads go through getTheme; preference writes only through setTheme; continuous sync only through the `theme/change` event. overrideTokens stacks partial token layers over the active theme without touching the registry. The service holds the `prefers-color-scheme` media query (environment sensing, not presentation) and re-emits when the OS scheme flips while the preference is `system`.',
+    summary: 'Theme registry, preference, and accent-skin owner.',
+    description: 'Theme registry, preference, and accent-skin owner. `light`/`dark` are built in (the base stylesheets carry both palettes); third-party themes register alias-layer overrides, and the built-in `ellen` accent mounts the coral-red scale through `body[data-ds-ellen-theme]`. Reads go through getTheme; preference writes only through setTheme; accent writes only through setAccent; continuous sync only through the `theme/change` event. overrideTokens stacks partial token layers over the active theme without touching the registry. The service holds the `prefers-color-scheme` media query (environment sensing, not presentation) and re-emits when the OS scheme flips while the preference is `system`.',
     methods: [
       {
         signature: 'getTheme(): ThemeSnapshot',
@@ -257,6 +257,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'setFontSize(px: number): void',
         description: 'Change the conversation content font size — the only font-size write entry. Accepted values are written through the settings scope and emit `theme/change`.',
         parameters: [{ name: 'px', description: 'integer px within FONT_SIZE_MIN..FONT_SIZE_MAX; out-of-range or fractional values throw.' }],
+      },
+      {
+        signature: 'setAccent(accent: ThemeAccent): void',
+        description: 'Switch the accent skin and persist the accepted value.',
+        parameters: [{ name: 'accent', description: 'the built-in accent id.' }],
       },
       {
         signature: 'register(definition: ThemeDefinition): () => void',
@@ -838,6 +843,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SubmissionHandle {\n    readonly requestId: SessionRequestId;\n    abandon(): void;\n}',
   },
   {
+    name: 'ThemeAccent',
+    declaration: 'export type ThemeAccent = typeof THEME_ACCENTS[number];',
+  },
+  {
     name: 'ThemeDefinition',
     declaration: 'export interface ThemeDefinition {\n    id: string;\n    colorScheme: \'light\' | \'dark\';\n    tokens: ThemeTokens;\n}',
   },
@@ -847,7 +856,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ThemeSnapshot',
-    declaration: 'export interface ThemeSnapshot {\n    preference: ThemePreference;\n    fontSize: number;\n    active: ThemeDefinition;\n    themes: readonly ThemeDefinition[];\n    revision: number;\n}',
+    declaration: 'export interface ThemeSnapshot {\n    preference: ThemePreference;\n    accent: ThemeAccent;\n    fontSize: number;\n    active: ThemeDefinition;\n    themes: readonly ThemeDefinition[];\n    revision: number;\n}',
   },
   {
     name: 'ThemeTokenModes',

@@ -126,6 +126,49 @@
   transition-delay: 0s, 0s, 0s, 180ms;
 }
 
+/* Multi-select bulk bar: replaces the search/action cluster while select mode
+   is active — selected count plus select-all/archive/cancel text actions. */
+.selectionBar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+  overflow: hidden;
+}
+
+.selectionCount {
+  flex: none;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+
+.selectionButton {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.selectionButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.selectionButton:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
 /* Inline search always fills the room between the title and trailing actions;
    it grows farther right when the action cluster collapses. */
 .search {

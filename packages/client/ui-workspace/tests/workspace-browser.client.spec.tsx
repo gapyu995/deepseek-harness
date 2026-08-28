@@ -119,6 +119,29 @@ describe('WorkspaceBrowser', () => {
     }
   })
 
+  it('multi-select archives every checked session and exits the mode', async () => {
+    const archiveSession = vi.fn(async () => {})
+    const open = vi.fn()
+    mount({
+      useSessions: hook(sessionState([summary('a', 2), summary('b', 1)])),
+      useWorkspaces: hook(workspaceState([workspace('project', ['a', 'b'])])),
+      archiveSession,
+      open,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '多选' }))
+    expect(screen.getByText('已选 0 项')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '全选' }))
+    expect(screen.getByText('已选 2 项')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '归档' }))
+    await waitFor(() => {
+      expect(archiveSession).toHaveBeenCalledWith(sid('a'))
+      expect(archiveSession).toHaveBeenCalledWith(sid('b'))
+    })
+    expect(open).not.toHaveBeenCalled()
+    // The bulk bar is gone after committing.
+    expect(screen.queryByText(/已选/)).toBeNull()
+  })
+
   it('prunes deleted Workspace view state only after the Workspace baseline is ready', async () => {
     const pending = {
       ...workspaceState([]),

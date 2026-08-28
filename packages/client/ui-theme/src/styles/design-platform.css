@@ -243,6 +243,13 @@ body {
   --dsw-specific-sidebar-nav-item-active: var(--dsw-static-neutral-bluish-100);
   --dsw-specific-sidebar-nav-item-hover: var(--dsw-static-neutral-bluish-75);
   --dsw-specific-tip: var(--dsw-static-neutral-bluish-60);
+  /* Empty-state hero glow: outer ellipse + optional inner sea-blue ellipse.
+     Native keeps one soft blue outer ellipse; the `ellen` accent recolors both
+     and reveals the inner sea-blue ellipse (see ellen.css). */
+  --dsh-hero-glow-outer: #6187D8;
+  --dsh-hero-glow-outer-opacity: 0.08;
+  --dsh-hero-glow-inner: #2E86C1;
+  --dsh-hero-glow-inner-opacity: 0;
 }
 
 body[data-ds-dark-theme] {

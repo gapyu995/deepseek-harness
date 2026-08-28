@@ -81,6 +81,17 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Hero glow ellipses use theme-owned tokens so the Ellen accent can retint them. */
+.outerGlow {
+  fill: var(--dsh-hero-glow-outer);
+  fill-opacity: var(--dsh-hero-glow-outer-opacity);
+}
+
+.innerGlow {
+  fill: var(--dsh-hero-glow-inner);
+  fill-opacity: var(--dsh-hero-glow-inner-opacity);
+}
+
 /* Hover swim: a slow continuous sway about the body center — the head
    (left) lifts as the whale rises, then settles back with a small
    counter-tilt, like treading water. Negative rotation = head up (the head

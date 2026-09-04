@@ -39,8 +39,9 @@
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-button-elevated-fill);
   color: var(--dsw-alias-label-secondary);
   font-size: 14px;
@@ -63,8 +64,9 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsw-alias-button-elevated-fill);
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
@@ -82,7 +84,7 @@
   width: max-content;
   max-width: 260px;
   padding: 8px 14px;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 12px;
   background: var(--dsw-alias-button-elevated-fill);
   color: var(--dsw-alias-label-primary);

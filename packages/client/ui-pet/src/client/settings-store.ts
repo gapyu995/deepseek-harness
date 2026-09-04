@@ -3,7 +3,7 @@
  * settings scope. The apply-world subscription is the only writer; the Pet
  * component reads via props.useStore to pick its sprite sheet.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /** Store state mirrored from the theme accent. */
 export interface PetStoreState {

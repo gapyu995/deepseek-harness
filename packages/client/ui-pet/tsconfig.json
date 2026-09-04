@@ -12,13 +12,16 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../runtime"
+      "path": "../store"
     },
     {
       "path": "../ui-slots"
     },
     {
       "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-renderer"
     },
     {
       "path": "../ui-settings"

@@ -11,6 +11,9 @@ export const zh = {
   'fontSize.unit': 'px',
   'fontSize.increase': '增大字号',
   'fontSize.decrease': '减小字号',
+  'style.title': 'Style',
+  'style.native': 'Native',
+  'style.ellen': 'Ellen',
 } satisfies Record<string, string>
 
 /** The settings.theme namespace key union. */
@@ -27,4 +30,7 @@ export const en = {
   'fontSize.unit': 'px',
   'fontSize.increase': 'Increase font size',
   'fontSize.decrease': 'Decrease font size',
+  'style.title': 'Style',
+  'style.native': 'Native',
+  'style.ellen': 'Ellen',
 } satisfies Record<ThemeKey, string>

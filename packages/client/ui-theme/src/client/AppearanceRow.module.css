@@ -29,6 +29,7 @@
 .themeCube {
   box-sizing: border-box;
   flex: 1 1 180px;
+  min-height: 82px;
   display: flex;
   flex-direction: column;
   align-items: center;

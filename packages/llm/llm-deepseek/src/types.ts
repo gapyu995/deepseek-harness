@@ -14,7 +14,8 @@ export interface WireRequest {
   model: string
   messages: WireMessage[]
   stream: true
-  stream_options: { include_usage: true }
+  /** Optional usage request; some OpenAI-compatible gateways reject this field. */
+  stream_options?: { include_usage: true }
   /** Thinking-mode toggle (top level, NOT inside extra_body on the wire). */
   thinking?: { type: 'enabled' | 'disabled' }
   /** Thinking effort (official levels). */

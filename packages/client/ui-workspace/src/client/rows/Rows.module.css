@@ -131,6 +131,27 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* Multi-select checkbox: the leading slot's 16px twin — a bordered square that
+   fills with the business accent and shows a contrasting check when selected. */
+.checkbox {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 4px;
+  background: transparent;
+}
+
+.checkboxChecked {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;

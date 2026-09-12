@@ -24,16 +24,16 @@ import { createAppearanceRowStore, createFontSizeRowStore } from './settings-sto
 import { installThemeStyles } from './styles.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import {
-  DEFAULT_FONT_SIZE, DEFAULT_PREFERENCE, FONT_SIZE_FIELD, FONT_SIZE_MAX, FONT_SIZE_MIN,
-  isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
-  type ThemePreference, type ThemeSettings,
+  DEFAULT_ACCENT, DEFAULT_FONT_SIZE, DEFAULT_PREFERENCE, FONT_SIZE_FIELD, FONT_SIZE_MAX, FONT_SIZE_MIN,
+  isThemePreference, THEME_ACCENT_FIELD, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+  type ThemeAccent, type ThemePreference, type ThemeSettings,
 } from '../theme-settings.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
 export type { FontSizeRowComponentProps, FontSizeRowInjected } from './FontSizeRow.tsx'
 export type { AppearanceRowState, FontSizeRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
-export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
+export type { ThemeAccent, ThemePreference, ThemeSettings } from '../theme-settings.ts'
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
@@ -80,6 +80,8 @@ export interface ThemeDefinition {
 export interface ThemeSnapshot {
   /** The persisted preference (may be `system`). */
   preference: ThemePreference
+  /** The persisted accent skin (`native` or `ellen`). */
+  accent: ThemeAccent
   /** Conversation content font size in px (integer within FONT_SIZE_MIN..FONT_SIZE_MAX). */
   fontSize: number
   /**
@@ -145,12 +147,14 @@ const BUILTIN_INSPECT_TOKENS: readonly ThemeTokenInspection[] = Object.freeze([
 ])
 
 /**
- * Theme registry and preference owner. `light`/`dark` are built in (the base
- * stylesheets carry both palettes); third-party themes register alias-layer
- * overrides. Reads go through {@link getTheme}; preference writes only
- * through {@link setTheme}; continuous sync only through the `theme/change`
- * event. {@link overrideTokens} stacks partial token layers over the active
- * theme without touching the registry.
+ * Theme registry, preference, and accent-skin owner. `light`/`dark` are built
+ * in (the base stylesheets carry both palettes); third-party themes register
+ * alias-layer overrides, and the built-in `ellen` accent mounts the coral-red
+ * scale through `body[data-ds-ellen-theme]`. Reads go through {@link getTheme};
+ * preference writes only through {@link setTheme}; accent writes only through
+ * {@link setAccent}; continuous sync only through the `theme/change` event.
+ * {@link overrideTokens} stacks partial token layers over the active theme
+ * without touching the registry.
  * The service holds the `prefers-color-scheme` media query (environment
  * sensing, not presentation) and re-emits when the OS scheme flips while the
  * preference is `system`.
@@ -161,6 +165,7 @@ export class ThemeRuntime {
   private themes: ThemeDefinition[] = [...BUILTIN_THEMES]
   private preference: ThemePreference
   private fontSize: number = bootstrapFontSize()
+  private accent: ThemeAccent = DEFAULT_ACCENT
   private revision = 0
   private snapshot: ThemeSnapshot
   private readonly media: MediaQueryList | undefined
@@ -254,12 +259,25 @@ export class ThemeRuntime {
     this.publish()
   }
 
+  /**
+   * Switch the accent skin and persist the accepted value.
+   * @param accent - the built-in accent id.
+   */
+  setAccent(accent: ThemeAccent): void {
+    if (this.accent === accent) return
+    this.accent = accent
+    void this.host.set(THEME_ACCENT_FIELD, accent)
+    this.publish()
+  }
+
   /** Adopt the scope's accepted durable preference without writing it back. */
   private adopt(): void {
     const section = this.host.getSnapshot().value
     if (section === undefined) return
-    if (this.preference === section.preference && this.fontSize === section.fontSize) return
+    const accent = section.accent ?? DEFAULT_ACCENT
+    if (this.preference === section.preference && this.accent === accent && this.fontSize === section.fontSize) return
     this.preference = section.preference
+    this.accent = accent
     this.fontSize = section.fontSize
     this.publish()
   }
@@ -327,6 +345,7 @@ export class ThemeRuntime {
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
     return Object.freeze({
       preference: this.preference,
+      accent: this.accent,
       fontSize: this.fontSize,
       active: this.composeActive(active),
       themes: Object.freeze([...this.themes]),
@@ -438,7 +457,7 @@ export function apply(ctx: ClientContext): void {
   const fontSizeStore = createFontSizeRowStore()
   let fontSizeBound: BoundActions<typeof fontSizeStore> | undefined
   const sync = (snapshot: ThemeSnapshot): void => {
-    bound?.sync(snapshot.preference, snapshot.revision)
+    bound?.sync(snapshot.preference, snapshot.accent, snapshot.revision)
     fontSizeBound?.sync(snapshot.fontSize, snapshot.revision)
   }
   ctx.on('theme/change', sync)
@@ -449,6 +468,7 @@ export function apply(ctx: ClientContext): void {
     sync(theme.getTheme())
     return {
       setTheme: (id) => { theme.setTheme(id) },
+      setAccent: (accent) => { theme.setAccent(accent) },
     }
   }
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
